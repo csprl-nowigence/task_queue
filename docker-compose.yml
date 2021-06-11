@@ -1,0 +1,28 @@
+version: "3.7"
+services:
+  rabbit:
+    image: rabbitmq:latest
+
+  fastapi:
+    image: celery-simple:latest
+    ports:
+      - 8080:8080
+    volumes:
+    - ./:/code
+    entrypoint: uvicorn app:app --host 0.0.0.0 --port 8080 --reload
+
+  worker:
+    image: celery-simple:latest
+    volumes:
+    - ./:/code
+    entrypoint: celery --app celery_app.celery_app2 worker -c 2 --loglevel=info
+    depends_on:
+      - rabbit
+
+  flower:
+    image: mher/flower
+    command: ["flower", "--broker=pyamqp://guest@rabbit//", "--port=8888"]
+    ports:
+       - 8888:8888
+    depends_on:
+      - "worker"
